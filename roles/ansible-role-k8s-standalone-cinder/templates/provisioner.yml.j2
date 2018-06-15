@@ -1,0 +1,29 @@
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: standalone-cinder-provisioner
+spec:
+  selector:
+    matchLabels:
+      name: standalone-cinder-provisioner
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: standalone-cinder-provisioner
+    spec:
+      containers:
+      - name: standalone-cinder-provisioner
+        image: k8scloudprovider/cinder-provisioner:latest
+        #image: quay.io/aglitke/standalone-cinder-provisioner:latest
+        env:
+        - name: OS_CINDER_ENDPOINT
+          value: http://cinder:8776/v3
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: standalone-cinder
+provisioner: openstack.org/standalone-cinder
+

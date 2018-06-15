@@ -1,0 +1,10 @@
+---
+
+state_map:
+  provision: present
+  deprovision: absent
+state: "{{ state_map[apb_action] }}"
+
+deployment_api_version: v1
+deploymentconfig_api_version: v1
+

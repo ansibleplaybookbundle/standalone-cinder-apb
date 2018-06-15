@@ -1,0 +1,128 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: '{{ amqp_app_name }}'
+  name: '{{ amqp_app_name }}'
+  namespace: '{{ namespace }}'
+data:
+  config.json: |
+    {
+        "command": "/usr/sbin/rabbitmq-server",
+        "config_files": [
+            {
+                "source": "/var/lib/kolla/config_files/rabbitmq-env.conf",
+                "dest": "/etc/rabbitmq/rabbitmq-env.conf",
+                "owner": "rabbitmq",
+                "perm": "0600"
+            },
+            {
+                "source": "/var/lib/kolla/config_files/rabbitmq.config",
+                "dest": "/etc/rabbitmq/rabbitmq.config",
+                "owner": "rabbitmq",
+                "perm": "0600"
+            }
+        ],
+        "permissions": [
+            {
+                "path": "/var/lib/rabbitmq",
+                "owner": "rabbitmq:rabbitmq",
+                "recurse": true
+            },
+            {
+                "path": "/var/log/kolla/rabbitmq",
+                "owner": "rabbitmq:rabbitmq",
+                "recurse": true
+            }
+        ]
+    }
+  rabbitmq-env.conf: |
+    NODE_IP_ADDRESS=0.0.0.0
+    NODE_PORT=5672
+    RABBITMQ_SERVER_ERL_ARGS="+K true +P 1048576 -kernel inet_default_connect_options [{nodelay,true},{raw,6,18,<<5000:64/native>>}] -kernel inet_default_listen_options [{raw,6,18,<<5000:64/native>>}]"
+  rabbitmq.config: |
+    [
+      {rabbit, [
+        {tcp_listen_options, [binary, {packet, raw}, {reuseaddr, true}, {backlog, 128}, {nodelay, true}, {exit_on_close, false}, {keepalive, true}]},
+
+        {loopback_users, []},
+
+        {cluster_partition_handling, pause_minority},
+
+        {queue_master_locator, <<"min-masters">>},
+
+        {default_user, <<"guest">>},
+        {default_pass, <<"'{{rabbitmq_password}}'">>}
+      ]},
+      {kernel, [
+        {inet_dist_listen_min, 25672},
+        {inet_dist_listen_max, 25672}    ]},
+      {rabbitmq_management, [
+        {listener, [
+          {port, 15672},
+          {ip, "0.0.0.0"}
+        ]}
+      ]}
+    ].
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ amqp_app_name }}
+  namespace: {{ namespace }}
+  labels:
+    app: {{ amqp_app_name }}
+    service: {{ amqp_app_name }}
+spec:
+  ports:
+  - name: amqp
+    port: 5672
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: {{ amqp_app_name }}
+    service: {{ amqp_app_name }}
+---
+
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: {{ amqp_app_name }}
+  namespace: {{namespace}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ amqp_app_name }}
+  serviceName: {{ amqp_app_name }}
+  template:
+    metadata:
+      labels:
+        app: {{ amqp_app_name }}
+    spec:
+      containers:
+      - env:
+        - name: TZ
+          value: UTC
+        - name: KOLLA_CONFIG_STRATEGY
+          value: COPY_ALWAYS
+        - name: KOLLA_KUBERNETES
+        image: tripleoupstream/centos-binary-rabbitmq:latest
+        imagePullPolicy: "IfNotPresent"
+        name: {{ amqp_app_name }}
+        ports:
+        - containerPort: 5672
+          name: amqp
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/lib/kolla/config_files/
+          name: kolla-config
+      restartPolicy: Always
+      serviceAccount: {{service_account}}
+      serviceAccountName: {{service_account}}
+      volumes:
+      - configMap:
+          name: {{ amqp_app_name }}
+        name: kolla-config

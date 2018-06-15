@@ -1,0 +1,47 @@
+version: 1.0
+name: standalone-cinder-apb
+description: APB to deploy Standalone Cinder
+bindable: False
+async: optional
+metadata:
+  displayName: standalone-cinder
+  dependencies: []
+plans:
+  - name: ceph
+    description: This plan deploys standalone-cinder with Ceph backend
+    parameters: 
+      - title: Cinder Pool Name
+        name: cinder_volumes
+        type: string
+        required: true
+      - title: Cinder User Name
+        name: cinder_rbd_user_name
+        type: string
+        required: true
+      - title: Cinder Client Key
+        name: cinder_key
+        type: string
+        required: true
+      - title: Cinder Monitor Host
+        name: cinder_mon_host
+        type: string
+        required: true
+    free: True
+    metadata: {}
+  - name: xtremio
+    description: This plan deploys standalone-cinder with Xtremio backend
+    free: True
+    metadata: {}
+    parameters: 
+      - title: Xtremio SAN IP
+        name: san_ip
+        type: string
+        required: true
+      - title: Xtremio SAN Login
+        name: san_login
+        type: string
+        required: true
+      - title: Xtremio SAN Password
+        name: san_password
+        type: string
+        required: true

@@ -1,0 +1,69 @@
+---
+app_name: standalone-cinder
+db_app_name: mariadb
+db_port: 3306
+amqp_app_name: rabbitmq
+namespace: "{{ lookup('env','NAMESPACE') | default('cinder', true) }}"
+cluster: kubernetes
+
+action: provision
+service_account: cinder
+privileged_service_account: cinder-privileged
+
+mariadb_root_user: root
+mariadb_root_password: weakpassword
+
+cinder_user: cinder
+cinder_password: cinderpassword
+cinder_api_port: 8776
+
+rabbitmq_user: guest
+rabbitmq_password: rabbitmqpassword
+
+auth_strategy: noauth
+
+cinder_config:
+  DEFAULT:
+    public_bind_host: "0.0.0.0"
+
+role_name: cinder
+
+infra_node_label: kubevirt.io/storage-cinder-mariadb-host
+
+# Backends
+# Array to remember enabled backends. 
+enabled_backends: []
+
+#
+# Xtremio
+xtremio:
+    enabled: false
+    max_over_subscription_ratio: 40
+    use_multipath_for_image_xfer: true
+    volume_backend_name: xtremio
+    volume_driver: cinder.volume.drivers.emc.xtremio.XtremIOISCSIDriver
+    image_volume_cache_enabled: false
+    san_ip: 
+    xtremio_cluster_name:
+    san_login: 
+    san_password:
+#
+# Ceph
+ceph:
+    enabled: false
+    cinder_rbd_pool_name: cinder_volumes
+    cinder_rbd_user_name: cinder
+    ceph_authentication_type: cephx
+    client_key: 
+    ceph_mon_host: 
+
+# Netapp
+netapp:
+    enabled: false
+    volume_driver: cinder.volume.drivers.netapp.common.NetAppDriver
+    netapp_storage_family: ontap_cluster
+    netapp_storage_protocol: 
+    netapp_server_hostname:
+    netapp_server_port: 
+    netapp_login: 
+    netapp_password: 

@@ -1,0 +1,76 @@
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ db_app_name }}
+  namespace : {{ namespace }}
+  labels:
+    app: {{ db_app_name }}
+    service: {{ db_app_name }}
+spec:
+  ports:
+    - name: db_port
+      port: 3306
+      targetPort: 3306
+  selector:
+    app: {{ db_app_name }}
+    service: {{ db_app_name }}
+---
+
+{% if cluster == 'kubernetes' %}
+apiVersion: {{ deployment_api_version }}
+kind: Deployment
+{% else %}
+apiVersion: {{ deploymentconfig_api_version }}
+kind: DeploymentConfig
+{% endif %}
+metadata:
+  name: {{ db_app_name }}
+  namespace: {{ namespace }}
+  labels:
+    app: {{ db_app_name }}
+    service: {{ db_app_name }}
+spec:
+  replicas: 1
+{% if cluster == 'kubernetes' %}
+  selector:
+    matchLabels:
+      app: {{ db_app_name }}
+      service: {{ db_app_name }}
+{% else %}
+  selector:
+    app: {{ db_app_name }}
+    service: {{ db_app_name }}
+{% endif %}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ db_app_name }}
+        service: {{ db_app_name }}
+    node_selector:
+      "{{ infra_node_label }}": "true"
+    spec:
+      serviceAccount:  "{{ privileged_service_account }}"
+      containers:
+      - image: mariadb
+        name: {{db_app_name }}
+        securityContext:
+          privileged: true
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "{{ mariadb_root_password }}"
+        ports:
+          - containerPort: 3306
+            protocol: TCP
+        volumeMounts:
+        - name: mariadb-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mariadb-persistent-storage
+        hostPath:
+          path: /var/lib/storage-cinder-mariadb-datadir
+          type: Directory
+

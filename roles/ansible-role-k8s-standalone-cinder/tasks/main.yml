@@ -1,0 +1,33 @@
+---
+
+- name: 'Generate MariaDB root password'
+  set_fact:
+    mariadb_root_password:  "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+
+- name: 'Generate RabbitMQ password'
+  set_fact:
+    rabbitmq_password:  "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+
+- name: 'Generate Cinder password'
+  set_fact:
+    cinder_password:  "{{ lookup('password', '/dev/null length=15 chars=ascii_letters') }}"
+
+
+- name: Render templates
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: 0777
+  with_items:
+    - {src: 'rabbitmq.yml.j2',dest: '/tmp/rabbitmq.yml'}
+    - {src: 'mariadb.yml.j2',dest: '/tmp/mariadb.yml'}
+    - {src: 'cinder-ceph.yml.j2',dest: '/tmp/cinder-ceph.yml'}
+    - {src: 'provisioner.yml.j2',dest: '/tmp/provisioner.yml'}
+
+- name: Create resources
+  command: kubectl apply -f "{{ item }}"
+  with_items:
+    - /tmp/rabbitmq.yml
+    - /tmp/mariadb.yml
+    - /tmp/cinder-ceph.yml
+    - /tmp/provisioner.yml
